@@ -150,6 +150,9 @@ class AnalysisService:
             self.task_results.append(last_result)
             self.post_porcess_args['task_results'] = self.task_results
             self.post_porcess_args['last_result'] = last_result
+            
+            self.memory.set_session_data(session_id, f'{task.task_name}', last_result)
+
             if task.task_name == "conversation_router":
                 need_rec           = formatted_context.get("need_recommendation",  False)
                 need_write_operator = formatted_context.get("need_write_operator", False)
@@ -173,6 +176,8 @@ class AnalysisService:
                 if need_write_operator and not need_rec:
                     valid_tasks = self.cfg.operator_tasks
                 self.tasks = [t for t in self.tasks if t.task_name in valid_tasks]
+                self.memory.set_session_data(session_id, "_actual_tasks",
+                             [t.task_name for t in self.tasks])
                 self.memory.set_session_data(session_id, "intent_router", formatted_context)
                 idx = 0 
                 continue
@@ -181,7 +186,6 @@ class AnalysisService:
                 last_result = task.task_result_processor(**self.post_porcess_args)
             idx += 1
             logger.info(f"[The final execution result (the result passed to the next task)]:{last_result}")
-            self.memory.set_session_data(session_id,f'{task.task_name}',last_result)
         self.memory.add_messages(session_id, [{"role": "user", "content": request.target}])
         # self.memory.add_response(session_id, {"role": "assistant", "content": last_result})
         self.memory.set_session_data(session_id, 'last_result', last_result)

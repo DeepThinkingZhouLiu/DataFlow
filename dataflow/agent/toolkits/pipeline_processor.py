@@ -477,7 +477,7 @@ def local_tool_for_update_operators_info():
     ) 
 
 if __name__ == "__main__":
-    local_tool_for_update_operators_info()
+    # local_tool_for_update_operators_info()
     # result = collect_operator_params()
     # import pprint
     # pprint.pprint(result)

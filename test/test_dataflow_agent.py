@@ -1,5 +1,8 @@
 import os, asyncio
+import time
+import uuid
 from fastapi import FastAPI
+import json 
 from pathlib import Path
 from dataflow.agent.promptstemplates.prompt_template import PromptsTemplateGenerator
 from dataflow.agent.taskcenter import TaskRegistry,TaskChainConfig,build_cfg
@@ -14,6 +17,8 @@ from dataflow.agent.agentrole.debugger import DebugAgent
 from dataflow.agent.agentrole.executioner import ExecutionAgent
 from dataflow.cli_funcs.paths import DataFlowPath
 from dataflow import get_logger
+from typing import AsyncGenerator, List
+from fastapi.responses import StreamingResponse
 logger = get_logger()     
 toolkit = ToolRegistry()
 memorys = {
@@ -61,9 +66,93 @@ async def _run_service(req: ChatAgentRequest) -> ChatResponse:
     return await service.process_request()
 
 app = FastAPI(title="Dataflow Agent Service")
+# @app.post("/chatagent", response_model=ChatResponse)
+# async def chatagent(req: ChatAgentRequest):
+#     return await _run_service(req)
 @app.post("/chatagent", response_model=ChatResponse)
 async def chatagent(req: ChatAgentRequest):
-    return await _run_service(req)
+    service, _ = _create_service(req)
+    return await service.process_request()
+
+def _create_service(req: ChatAgentRequest):
+    tmpl                    = PromptsTemplateGenerator(req.language)
+    task_chain, chain_cfg   = _build_task_chain(req, tmpl)
+
+    exe_agent = ExecutionAgent(
+        request         = req,
+        memory_entity   = memorys["executioner"],
+        prompt_template = tmpl,
+        debug_agent     = DebugAgent(task_chain, memorys["debugger"], req),
+        task_chain      = task_chain,
+    )
+
+    service = AnalysisService(
+        tasks           = task_chain,
+        memory_entity   = memorys["analyst"],
+        request         = req,
+        execution_agent = exe_agent,
+        cfg             = chain_cfg,
+    )
+    return service, task_chain
+
+@app.post("/chatagent/stream", response_class=StreamingResponse)
+async def chatagent_stream(req: ChatAgentRequest):
+    service, task_chain = _create_service(req)
+    asyncio.create_task(service.process_request(), name=f"svc-{uuid.uuid4()}")
+
+    mem: Memory = memorys["analyst"]
+    session_id = mem.get_session_id(req.sessionKEY)
+
+    async def event_gen() -> AsyncGenerator[bytes, None]:
+        try:
+            task_names: List[str] = [t.task_name for t in task_chain]
+            while True:
+                actual = mem.get_session_data(session_id, "_actual_tasks")
+                if actual:
+                    task_names = (["conversation_router"]
+                                   + [t for t in actual if t != "conversation_router"])
+                    break
+                await asyncio.sleep(0.1)
+
+            # ② start 事件
+            for name in task_names:
+                yield f'data: {json.dumps({"event": "start", "task": name})}\n\n'.encode()
+
+            # ③ 依次等待每个 task 完成
+            for name in task_names:
+                start_ts = time.perf_counter()          # ← 记录开始等待时间
+                while True:
+                    res = mem.get_session_data(session_id, name)
+                    if res is not None:
+                        elapsed = round(time.perf_counter() - start_ts, 3)  # 秒，保留 3 位
+                        evt = {
+                            "event":  "finish",
+                            "task":   name,
+                            "result": res,
+                            "elapsed": elapsed,
+                        }
+                        yield f"data: {json.dumps(evt, ensure_ascii=False)}\n\n".encode()
+                        break
+                    await asyncio.sleep(0.3)
+
+            # ④ done
+            yield b'data: {"event":"done"}\n\n'
+            mem.clear_session(session_id)
+            return
+
+        except asyncio.CancelledError:
+            return
+        except Exception as e:
+            err = {"event": "error", "detail": repr(e)}
+            yield f"data: {json.dumps(err)}\n\n".encode()
+            yield b'data: {"event":"done"}\n\n'
+            return
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache"},
+    )
 
 if __name__ == "__main__":
     import uvicorn, json, sys, asyncio
