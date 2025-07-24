@@ -81,7 +81,7 @@ if __name__ == "__main__":
 # /mnt/h_h_public/lh/lz/DataFlow/dataflow/example/DataflowAgent/mq_test_data.jsonl
     operator_write_params = {
         "json_file": f"{DATAFLOW_DIR}/dataflow/example/DataflowAgent/mq_test_data.jsonl",
-        "py_path": f"{DATAFLOW_DIR}/test/Q-PARA.py",
+        "py_path": f"{DATAFLOW_DIR}/test/op_domain.py",
         "api_key": api_key,
         "chat_api_url": chat_api_url,
         "execute_the_operator": True,
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     if len(sys.argv) == 2 and sys.argv[1] == "write":
         test_req = ChatAgentRequest(
             language="zh",
-            target="我需要一个算子，使用LLMServing对医疗场景的原始题干进行同义改写，生成语义一致但表达不同的新问题，有效增加训练样本多样性，并且输入key是question，输出key是questionPARA,就在原数据上新加入key，不要生成新的行。",
+            target="我需要一个算子，使用LLMServing对原始文本样本进行主题分类，基于预训练主题分类器为文本分配具体主题类别（如财经、健康、科技等），以提升数据集的主题覆盖多样性。输入key为content，输出key为topic，就在原数据上新加入key，不要生成新的行。topic字段直接输出主题名称，所有可选主题包括：“activity（活动）”、“education（教育）”、“entertainment（娱乐）”、“finance（金融）”、“health（健康）”、“business and industrial（商业与工业）”、“infrastructure（基础设施）”、“literature and art（文学与艺术）”、“nature（自然）”、“others（其他）”、“law and government（法律与政府）”、“networking（网络）”、“technology（科技）”。",
             model="deepseek-v3",
             sessionKEY="dataflow_demo",
             ** operator_write_params
@@ -132,3 +132,8 @@ if __name__ == "__main__":
 # 我需要一个算子，使用LLMServing对医疗场景的原始题干进行临床细节扩充，在不影响考点的前提下，插入合理的病史、体格检查或辅助检查结果，增强问题的真实性，并可灵活调节题目难度。输入key是question，输出key是questionCONTEXT。
 # 我需要一个算子，使用LLMServing针对医疗选择题，自动生成从题干到标准答案的推理过程（思维链/Chain-of-Thought），以提升模型的推理能力和可解释性。输入key是question，输出key是questionCOT，内容为详细的推理步骤。
 # 我需要一个算子，使用LLMServing针对医疗多项选择题，自动生成具有医学迷惑性的干扰选项（错误选项），让错误选项更“像真”，提升模型判别难度。需依据常见临床误区或相近伦理概念设计，输入key是options，输出key是distractorGEN。
+
+
+# 我需要一个算子，使用LLMServing对原始文本样本进行质量评分，综合衡量文本内容的可靠性、完整性或语言规范性等因素，输出一个连续的质量分数，有效帮助筛选和优化训练样本集。输入key为content，输出key为quality_score，就在原数据上新加入key，不要生成新的行。
+# 我需要一个算子，使用LLMServing对原始文本样本进行领域分类，将文本内容归入相应的类别或知识领域（如百科、学术、新闻、小说等），便于后续进行领域均衡采样或分析。输入key为content，输出key为domain，就在原数据上新加入key，不要生成新的行。
+# 我需要一个算子，使用LLMServing对原始文本样本进行主题分类，基于预训练主题分类器为文本分配具体主题类别（如财经、健康、科技等），以提升数据集的主题覆盖多样性。输入key为content，输出key为topic，就在原数据上新加入key，不要生成新的行。topic字段直接输出主题名称，所有可选主题包括：“activity（活动）”、“education（教育）”、“entertainment（娱乐）”、“finance（金融）”、“health（健康）”、“business and industrial（商业与工业）”、“infrastructure（基础设施）”、“literature and art（文学与艺术）”、“nature（自然）”、“others（其他）”、“law and government（法律与政府）”、“networking（网络）”、“technology（科技）”。
