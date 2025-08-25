@@ -84,7 +84,7 @@ if __name__ == "__main__":
         "py_path": f"{DATAFLOW_DIR}/test/op—test—scorer.py",
         "api_key": api_key,
         "chat_api_url": chat_api_url,
-        "execute_the_operator": True,
+        "execute_the_operator": False,
         "use_local_model": False,
         "local_model_name_or_path": "/mnt/public/model/huggingface/Qwen2.5-7B-Instruct",
         "timeout": 3600,
