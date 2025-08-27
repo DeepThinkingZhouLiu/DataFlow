@@ -80,11 +80,11 @@ if __name__ == "__main__":
     }
 # /mnt/h_h_public/lh/lz/DataFlow/dataflow/example/DataflowAgent/mq_test_data.jsonl
     operator_write_params = {
-        "json_file": f"{DATAFLOW_DIR}/dataflow/example/DataflowAgent/test.jsonl",
-        "py_path": f"{DATAFLOW_DIR}/test/op—test—scorer.py",
+        "json_file": f"{DATAFLOW_DIR}/dataflow/example/DataflowAgent/mq_test_data.jsonl",
+        "py_path": f"{DATAFLOW_DIR}/test/op—test—scorer-new.py",
         "api_key": api_key,
         "chat_api_url": chat_api_url,
-        "execute_the_operator": False,
+        "execute_the_operator": True,
         "use_local_model": False,
         "local_model_name_or_path": "/mnt/public/model/huggingface/Qwen2.5-7B-Instruct",
         "timeout": 3600,
@@ -94,7 +94,7 @@ if __name__ == "__main__":
     if len(sys.argv) == 2 and sys.argv[1] == "recommend":
         test_req = ChatAgentRequest(
             language="zh",
-            target="帮我针对数据推荐一个的pipeline!!!只需要前3个算子！！不需要去重的算子 ！",
+            target="帮我针对这个数据推荐一个的pipeline!!!只需要4个算子！！不需要去重的算子 ！",
             model="deepseek-v3",
             sessionKEY="dataflow_demo",
             **pipeline_recommend_params
@@ -105,7 +105,7 @@ if __name__ == "__main__":
     if len(sys.argv) == 2 and sys.argv[1] == "write":
         test_req = ChatAgentRequest(
             language="zh",
-            target="你好，你是谁？？",
+            target="帮我写一个算子，能通过LLMserving完成打分，这个算子使用如下的提示词: 'System Prompt:We would like to request your feedback on the performance of AI assistant in response to the instructionand the given input displayed following.Instruction: InstructionInput: [InputResponse:ResponseUser Prompt:Please rate according to the accuracy of the response to the instruction and the input. Each assistant receives a score on a scale of 0 to 5, where a higher score indicates higher level of the accuracy. Please output a single line containing the value indicating the scores. In the subsequent line, please provide acomprehensive explanation of your evaluation, avoiding any potential bias.'",
             model="deepseek-v3",
             sessionKEY="dataflow_demo",
             ** operator_write_params

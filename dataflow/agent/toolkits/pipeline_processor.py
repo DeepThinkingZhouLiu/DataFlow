@@ -274,7 +274,8 @@ def generate_pipeline_py(
     json_file: str = "",
     *,
     local: bool = False,
-    local_model_name_or_path: str= ""
+    local_model_name_or_path: str= "",
+    chat_api_url:str = ""
 ) -> str:
     """Generate an executable Python pipeline script."""
 
@@ -346,7 +347,7 @@ def generate_pipeline_py(
         llm_block = f"""
         # -------- LLM Serving (Remote) --------
         llm_serving = APILLMServing_request(
-            api_url={request.chat_api_url},
+            api_url='{chat_api_url}',
             key_name_of_api_key='DF_API_KEY',
             model_name="gpt-4o",
             max_workers=100,
