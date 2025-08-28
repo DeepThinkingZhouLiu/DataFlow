@@ -92,3 +92,34 @@ class AccuracyScorer(OperatorABC):
         dataframe[output_score_key] = scores
         dataframe[output_reason_key] = reasons
         storage.write(dataframe)
+
+
+# ======== Auto-generated runner ========
+from dataflow.utils.storage import FileStorage
+from dataflow.serving import APILLMServing_request, LocalModelLLMServing_vllm, LocalModelLLMServing_sglang
+from dataflow.core import LLMServingABC
+
+if __name__ == "__main__":
+    # 1. FileStorage
+    storage = FileStorage(
+        first_entry_file_name="/mnt/h_h_public/lh/lz/DataFlow/dataflow/example/DataflowAgent/mq_test_data.jsonl",
+        cache_path="./cache_local",
+        file_name_prefix="dataflow_cache_step",
+        cache_type="jsonl",
+    )
+
+    # 2. LLM-Serving
+    # -------- LLM Serving (Remote) --------
+    llm_serving = APILLMServing_request(
+        api_url='http://123.129.219.111:3000/v1/chat/completions',
+        key_name_of_api_key = 'DF_API_KEY',
+        model_name="gpt-4o",
+        max_workers=100,
+    )
+    # 若需本地模型，请改用 LocalModelLLMServing 并设置 local=True
+
+# 3. Instantiate operator
+operator = AccuracyScorer(llm_serving=llm_serving)
+
+# 4. Run
+operator.run(storage=storage.step())
