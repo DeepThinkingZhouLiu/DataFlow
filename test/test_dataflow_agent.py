@@ -106,7 +106,7 @@ if __name__ == "__main__":
         test_req = ChatAgentRequest(
             language="zh",
             target="我需要一个算子，使用LLMServing对医疗场景的原始题干进行临床细节扩充，在不影响考点的前提下，插入合理的病史、体格检查或辅助检查结果，增强问题的真实性，并可灵活调节题目难度。输入key是question，输出key是questionCONTEXT。",
-            model="gpt-4",
+            model="gpt-4.1",
             sessionKEY="dataflow_demo",
             ** operator_write_params
         )
