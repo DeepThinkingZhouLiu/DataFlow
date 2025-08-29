@@ -84,7 +84,7 @@ if __name__ == "__main__":
         "py_path": f"{DATAFLOW_DIR}/test/op—test—scorer-new.py",
         "api_key": api_key,
         "chat_api_url": chat_api_url,
-        "execute_the_operator": True,
+        "execute_the_operator": False,
         "use_local_model": False,
         "local_model_name_or_path": "/mnt/public/model/huggingface/Qwen2.5-7B-Instruct",
         "timeout": 3600,
@@ -105,8 +105,8 @@ if __name__ == "__main__":
     if len(sys.argv) == 2 and sys.argv[1] == "write":
         test_req = ChatAgentRequest(
             language="zh",
-            target="帮我写一个算子，能通过LLMserving完成打分，这个算子使用如下的提示词: 'System Prompt:We would like to request your feedback on the performance of AI assistant in response to the instructionand the given input displayed following.Instruction: InstructionInput: [InputResponse:ResponseUser Prompt:Please rate according to the accuracy of the response to the instruction and the input. Each assistant receives a score on a scale of 0 to 5, where a higher score indicates higher level of the accuracy. Please output a single line containing the value indicating the scores. In the subsequent line, please provide acomprehensive explanation of your evaluation, avoiding any potential bias.'",
-            model="gpt-4.1",
+            target="我需要一个算子，使用LLMServing对医疗场景的原始题干进行临床细节扩充，在不影响考点的前提下，插入合理的病史、体格检查或辅助检查结果，增强问题的真实性，并可灵活调节题目难度。输入key是question，输出key是questionCONTEXT。",
+            model="gpt-4",
             sessionKEY="dataflow_demo",
             ** operator_write_params
         )
@@ -128,6 +128,7 @@ if __name__ == "__main__":
     # 我需要一个算子，能够通过LLM自动识别并过滤垃圾广告或灌水内容。
     # 我需要一个算子，直接使用LLMservinf进行总结，能够对输入的长文本自动生成摘要。
     # 我需要一个算子，能够根据给定主题或关键词自动生成新文本。
+#             target="帮我写一个算子，能通过LLMserving完成打分，这个算子使用如下的提示词: 'System Prompt:We would like to request your feedback on the performance of AI assistant in response to the instructionand the given input displayed following.Instruction: InstructionInput: [InputResponse:ResponseUser Prompt:Please rate according to the accuracy of the response to the instruction and the input. Each assistant receives a score on a scale of 0 to 5, where a higher score indicates higher level of the accuracy. Please output a single line containing the value indicating the scores. In the subsequent line, please provide acomprehensive explanation of your evaluation, avoiding any potential bias.'",
 
 
 # 医学："我需要一个算子，使用LLMServing对医疗场景的原始题干进行同义改写，生成语义一致但表达不同的新问题，有效增加训练样本多样性，并且输入key是question，输出key是questionPARA,就在原数据上新加入key，不要生成新的行。",
