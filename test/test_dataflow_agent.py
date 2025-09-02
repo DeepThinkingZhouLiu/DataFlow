@@ -69,14 +69,14 @@ if __name__ == "__main__":
     import uvicorn, json, sys, asyncio
     pipeline_recommend_params = {
         "json_file": f"{DATAFLOW_DIR}/dataflow/example/ReasoningPipeline/pipeline_math_short.json",
-        "py_path": f"{DATAFLOW_DIR}/test/recommend_pipeline.py",
+        "py_path": f"{DATAFLOW_DIR}/test/recommend_pipeline_test.py",
         "api_key": api_key,
         "chat_api_url": chat_api_url,
         "execute_the_pipeline": False,
         "use_local_model": False,
         "local_model_name_or_path": "/mnt/public/model/huggingface/Qwen2.5-7B-Instruct",
         "timeout": 3600,
-        "max_debug_round": 5
+        "max_debug_round": 20
     }
 # /mnt/h_h_public/lh/lz/DataFlow/dataflow/example/DataflowAgent/mq_test_data.jsonl
     operator_write_params = {
