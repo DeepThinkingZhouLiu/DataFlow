@@ -9,6 +9,7 @@ from dataflow.agent.toolkits import (
     ChatResponse,
     ChatAgentRequest,
     ToolRegistry,
+    update_taskinfo_code_model
 )
 from dataflow.agent.agentrole.debugger import DebugAgent
 from dataflow.agent.agentrole.executioner import ExecutionAgent
@@ -57,11 +58,16 @@ class Config:
         # Debug Configuration (used in /config endpoint)
         self.debug_mode = os.environ.get("DEBUG_MODE", "false").lower() == "true"
 
+        # Code Model Configuration
+        self.code_model = os.environ.get("CODE_MODEL", "o3")
+
 # Initialize configuration
 config = Config()
 
 # Setup logging
 logger = get_logger()
+
+update_taskinfo_code_model(code_model=config.code_model)
 
 # Initialize components
 toolkit = ToolRegistry()

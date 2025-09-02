@@ -41,7 +41,7 @@ load_default_config() {
     # Model Configuration
     # 模型配置
     # -----------------------------------------------------------------------------
-    export USE_LOCAL_MODEL="${USE_LOCAL_MODEL:-true}"                       # 是否使用本地模型
+    export USE_LOCAL_MODEL="${USE_LOCAL_MODEL:-false}"                       # 是否使用本地模型
     export LOCAL_MODEL_NAME_OR_PATH="${LOCAL_MODEL_NAME_OR_PATH:-/mnt/public/model/huggingface/Qwen2.5-7B-Instruct}"  # 本地模型路径
 
     # -----------------------------------------------------------------------------
@@ -58,7 +58,7 @@ load_default_config() {
     # -----------------------------------------------------------------------------
     export PIPELINE_JSON_FILE="${PIPELINE_JSON_FILE:-dataflow/example/ReasoningPipeline/pipeline_math_short.json}"  # 流水线JSON配置文件
     export PIPELINE_PY_PATH="${PIPELINE_PY_PATH:-test/recommend_pipeline.py}"                                       # 流水线Python文件路径
-    export EXECUTE_THE_PIPELINE="${EXECUTE_THE_PIPELINE:-false}"                                                    # 是否执行流水线
+    export EXECUTE_THE_PIPELINE="${EXECUTE_THE_PIPELINE:-true}"                                                    # 是否执行流水线
 
     # -----------------------------------------------------------------------------
     # Operator Configuration
@@ -66,7 +66,7 @@ load_default_config() {
     # -----------------------------------------------------------------------------
     export OPERATOR_JSON_FILE="${OPERATOR_JSON_FILE:-dataflow/example/ReasoningPipeline/pipeline_math_short.json}"  # 算子JSON配置文件
     export OPERATOR_PY_PATH="${OPERATOR_PY_PATH:-test/default_op.py}"                                              # 算子Python文件路径
-    export EXECUTE_THE_OPERATOR="${EXECUTE_THE_OPERATOR:-false}"                                                    # 是否执行算子
+    export EXECUTE_THE_OPERATOR="${EXECUTE_THE_OPERATOR:-true}"                                                    # 是否执行算子
 
     # -----------------------------------------------------------------------------
     # Timeout and Debug Configuration
@@ -82,6 +82,12 @@ load_default_config() {
     export DEFAULT_LANGUAGE="${DEFAULT_LANGUAGE:-zh}"                      # 默认语言 zh / en
     export DEFAULT_MODEL="${DEFAULT_MODEL:-gpt-4o-mini}"                   # 默认模型名称
     export DEFAULT_SESSION_KEY="${DEFAULT_SESSION_KEY:-dataflow_demo}"     # 默认会话键
+
+    # -----------------------------------------------------------------------------
+    # Code Model Configuration
+    # 代码模型配置
+    # -----------------------------------------------------------------------------
+    export CODE_MODEL="${CODE_MODEL:-gpt-4o}"                                  # 代码生成模型名称
 
     # -----------------------------------------------------------------------------
     # Test Target Configuration
@@ -135,6 +141,14 @@ validate_config() {
         errors=$((errors + 1))
     fi
     
+    # Check code model
+    # 检查代码模型配置
+    if [ -z "$CODE_MODEL" ]; then
+        print_error "CODE_MODEL cannot be empty"
+        print_error "代码模型名称不能为空"
+        errors=$((errors + 1))
+    fi
+    
     if [ $errors -eq 0 ]; then
         print_success "Configuration validated successfully!"
         print_success "配置验证成功！"
@@ -157,6 +171,10 @@ show_config_summary() {
         echo "使用本地模型：$USE_LOCAL_MODEL"
         echo "Model Path: $LOCAL_MODEL_NAME_OR_PATH"
         echo "模型路径：$LOCAL_MODEL_NAME_OR_PATH"
+        echo "Default Model: $DEFAULT_MODEL"
+        echo "默认模型：$DEFAULT_MODEL"
+        echo "Code Model: $CODE_MODEL"
+        echo "代码模型：$CODE_MODEL"
         echo "Debug Mode: $DEBUG_MODE"
         echo "调试模式：$DEBUG_MODE"
         echo "============================"
@@ -184,11 +202,13 @@ show_usage() {
     echo "  --config    - Load custom config file / 加载自定义配置文件"
     echo "  --debug     - Enable debug mode / 启用调试模式"
     echo "  --port      - Set custom port / 设置自定义端口"
+    echo "  --code-model - Set code generation model / 设置代码生成模型"
     echo ""
     echo "Examples / 示例:"
     echo "  $0 server --port 8080"
     echo "  $0 --config custom_config.sh"
     echo "  $0 recommend --debug"
+    echo "  $0 write --code-model gpt-4-turbo"
 }
 
 # 解析命令行参数
@@ -212,6 +232,10 @@ parse_args() {
                 ;;
             --port)
                 export SERVER_PORT="$2"
+                shift 2
+                ;;
+            --code-model)
+                export CODE_MODEL="$2"
                 shift 2
                 ;;
             -h|--help)
@@ -269,10 +293,10 @@ check_environment() {
     fi
     
     # 依赖检查
-    python3 -c "import fastapi, dataflow" 2>/dev/null
+    python3 -c "import fastapi, dataflow, yaml" 2>/dev/null
     if [ $? -ne 0 ]; then
-        print_error "Missing required packages (fastapi, dataflow)"
-        print_error "缺少必需的包 (fastapi, dataflow)"
+        print_error "Missing required packages (fastapi, dataflow, pyyaml)"
+        print_error "缺少必需的包 (fastapi, dataflow, pyyaml)"
         exit 1
     fi
     
@@ -288,6 +312,8 @@ start_service() {
             print_info "正在启动FastAPI服务器..."
             print_info "Server will be available at http://${SERVER_HOST}:${SERVER_PORT}"
             print_info "服务器将在 http://${SERVER_HOST}:${SERVER_PORT} 可用"
+            print_info "Code model configured: $CODE_MODEL"
+            print_info "代码模型配置：$CODE_MODEL"
             python3 run_dataflow_agent_service.py server
             ;;
         "recommend")
@@ -298,6 +324,8 @@ start_service() {
         "write")
             print_info "Running operator writing test..."
             print_info "正在运行算子编写测试..."
+            print_info "Using code model: $CODE_MODEL"
+            print_info "使用代码模型：$CODE_MODEL"
             python3 run_dataflow_agent_service.py write
             ;;
         "config")

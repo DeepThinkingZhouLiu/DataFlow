@@ -275,7 +275,8 @@ def generate_pipeline_py(
     *,
     local: bool = False,
     local_model_name_or_path: str= "",
-    chat_api_url: str = ""
+    chat_api_url: str = "",
+    model_name:str = "gpt-4o"
 ) -> str:
     """Generate an executable Python pipeline script."""
 
@@ -352,7 +353,7 @@ def generate_pipeline_py(
         llm_serving = APILLMServing_request(
             api_url="{chat_api_url}",
             key_name_of_api_key='DF_API_KEY',
-            model_name="gpt-4o",
+            model_name="{model_name}",
             max_workers=100,
         )
         # For local models, uncomment below
@@ -451,7 +452,8 @@ def local_tool_for_execute_the_recommended_pipeline(
             json_file=request.json_file,
             local=request.use_local_model,
             local_model_name_or_path=request.local_model_name_or_path,
-            chat_api_url=request.chat_api_url   
+            chat_api_url=request.chat_api_url,
+            model_name=  request.model
         )
     logger.info(f"[Agent generated Pipeline Code]: {code}")
     if request.execute_the_pipeline and not dry_run:

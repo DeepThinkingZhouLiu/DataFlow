@@ -351,6 +351,35 @@ def get_operator_descriptions(root_package: str = "dataflow",
 
     return desc_list
 
+def update_taskinfo_code_model(code_model: str):
+
+    try:
+        base_dir = DataFlowPath.get_dataflow_dir()
+        taskinfo_path = base_dir / "agent" / "taskcenter" / "resources" / "TaskInfo.yaml"
+        
+        if not taskinfo_path.exists():
+            logger.info(f"Warning: TaskInfo.yaml not found at {taskinfo_path}")
+            return False
+        
+        with open(taskinfo_path, 'r', encoding='utf-8') as file:
+            task_info = yaml.safe_load(file)
+        
+        if 'write_the_operator' not in task_info:
+            task_info['write_the_operator'] = {}
+        
+        if 'category' not in task_info['write_the_operator']:
+            task_info['write_the_operator']['category'] = 'operator'
+        
+        task_info['write_the_operator']['special_model'] = code_model
+        
+        with open(taskinfo_path, 'w', encoding='utf-8') as file:
+            yaml.dump(task_info, file, default_flow_style=False, allow_unicode=True, sort_keys=False)
+        return True
+        
+    except Exception as e:
+        print(f"Error updating TaskInfo.yaml: {e}")
+        print(f"更新TaskInfo.yaml时出错: {e}")
+        return False
 
 def local_tool_for_get_chat_history(
     request,
