@@ -69,20 +69,19 @@ if __name__ == "__main__":
     import uvicorn, json, sys, asyncio
     pipeline_recommend_params = {
         "json_file": f"{DATAFLOW_DIR}/dataflow/example/ReasoningPipeline/pipeline_math_short.json",
-        "py_path": f"{DATAFLOW_DIR}/test/recommend_pipeline.py",
+        "py_path": f"{DATAFLOW_DIR}/test/recommend_pipeline_test.py",
         "api_key": api_key,
         "chat_api_url": chat_api_url,
         "execute_the_pipeline": False,
         "use_local_model": False,
         "local_model_name_or_path": "/mnt/public/model/huggingface/Qwen2.5-7B-Instruct",
         "timeout": 3600,
-        "max_debug_round": 5
+        "max_debug_round": 20
     }
 # /mnt/h_h_public/lh/lz/DataFlow/dataflow/example/DataflowAgent/mq_test_data.jsonl
     operator_write_params = {
-        # "json_file": f"{DATAFLOW_DIR}/dataflow/example/DataflowAgent/test.jsonl",
-        "json_file": "/mnt/public/data/lh/ygc/dataflow-agent/DataFlow/dataflow/example/DataflowAgent/test.jsonl",
-        "py_path": f"{DATAFLOW_DIR}/test/op—test—scorer-new.py",
+        "json_file": f"{DATAFLOW_DIR}/dataflow/example/DataflowAgent/mq_test_data.jsonl",
+        "py_path": f"{DATAFLOW_DIR}/test/op_test_deepseek-v3.py",
         "api_key": api_key,
         "chat_api_url": chat_api_url,
         "execute_the_operator": True,
@@ -95,7 +94,7 @@ if __name__ == "__main__":
     if len(sys.argv) == 2 and sys.argv[1] == "recommend":
         test_req = ChatAgentRequest(
             language="zh",
-            target="帮我针对这个数据推荐一个的pipeline!!!只需要4个算子！！不需要去重的算子 ！",
+            target="帮我针对数据推荐一个pipeline!!!",
             model="deepseek-v3",
             sessionKEY="dataflow_demo",
             **pipeline_recommend_params
@@ -106,8 +105,8 @@ if __name__ == "__main__":
     if len(sys.argv) == 2 and sys.argv[1] == "write":
         test_req = ChatAgentRequest(
             language="zh",
-            target="帮我写一个算子，能通过LLMserving完成打分，这个算子使用如下的提示词: 'System Prompt:We would like to request your feedback on the performance of AI assistant in response to the instructionand the given input displayed following.Instruction: InstructionInput: [InputResponse:ResponseUser Prompt:Please rate according to the accuracy of the response to the instruction and the input. Each assistant receives a score on a scale of 0 to 5, where a higher score indicates higher level of the accuracy. Please output a single line containing the value indicating the scores. In the subsequent line, please provide acomprehensive explanation of your evaluation, avoiding any potential bias.'",
-            model="gpt-4.1",
+            target="我需要一个算子，使用LLMServing对医疗场景的原始题干进行同义改写，生成语义一致但表达不同的新问题，有效增加训练样本多样性，并且输入key是question，输出key是questionPARA,就在原数据上新加入key，不要生成新的行。",
+            model="gpt-4o-mini",
             sessionKEY="dataflow_demo",
             ** operator_write_params
         )
