@@ -1,8 +1,4 @@
-{"session_id": "9cb97cf553ecf8cd026a2b4c3c67058ffe43aaf9601de4d9c47ab763bdcda466", "tokens": 644, "cum_tokens": 644, "ts": "2025-08-29T13:58:32"}
-{"session_id": "9cb97cf553ecf8cd026a2b4c3c67058ffe43aaf9601de4d9c47ab763bdcda466", "tokens": 22333, "cum_tokens": 22977, "ts": "2025-08-29T13:59:21"}
-{"session_id": "9cb97cf553ecf8cd026a2b4c3c67058ffe43aaf9601de4d9c47ab763bdcda466", "tokens": 599, "cum_tokens": 599, "ts": "2025-08-29T14:04:13"}
-{"session_id": "9cb97cf553ecf8cd026a2b4c3c67058ffe43aaf9601de4d9c47ab763bdcda466", "tokens": 22230, "cum_tokens": 22829, "ts": "2025-08-29T14:05:47"}
-{"session_id": "9cb97cf553ecf8cd026a2b4c3c67058ffe43aaf9601de4d9c47ab763bdcda466", "tokens": 5673, "cum_tokens": 28502, "ts": "2025-08-29T14:07:53"}
-{"session_id": "9cb97cf553ecf8cd026a2b4c3c67058ffe43aaf9601de4d9c47ab763bdcda466", "tokens": 2784, "cum_tokens": 31286, "ts": "2025-08-29T14:08:37"}
-{"session_id": "9cb97cf553ecf8cd026a2b4c3c67058ffe43aaf9601de4d9c47ab763bdcda466", "tokens": 638, "cum_tokens": 638, "ts": "2025-08-29T14:11:47"}
-{"session_id": "9cb97cf553ecf8cd026a2b4c3c67058ffe43aaf9601de4d9c47ab763bdcda466", "tokens": 22266, "cum_tokens": 22904, "ts": "2025-08-29T14:12:21"}
+{"session_id": "9cb97cf553ecf8cd026a2b4c3c67058ffe43aaf9601de4d9c47ab763bdcda466", "tokens": {"prompt": 503, "completion": 170, "total": 673}, "cum_tokens": {"prompt": 503, "completion": 170, "total": 673}, "ts": "2025-09-02T08:53:55"}
+{"session_id": "9cb97cf553ecf8cd026a2b4c3c67058ffe43aaf9601de4d9c47ab763bdcda466", "tokens": {"prompt": 24877, "completion": 217, "total": 25094}, "cum_tokens": {"prompt": 25380, "completion": 387, "total": 25767}, "ts": "2025-09-02T08:54:02"}
+{"session_id": "9cb97cf553ecf8cd026a2b4c3c67058ffe43aaf9601de4d9c47ab763bdcda466", "tokens": {"prompt": 2629, "completion": 1757, "total": 4386}, "cum_tokens": {"prompt": 28009, "completion": 2144, "total": 30153}, "ts": "2025-09-02T08:55:14"}
+{"session_id": "9cb97cf553ecf8cd026a2b4c3c67058ffe43aaf9601de4d9c47ab763bdcda466", "tokens": {"prompt": 1243, "completion": 1631, "total": 2874}, "cum_tokens": {"prompt": 29252, "completion": 3775, "total": 33027}, "ts": "2025-09-02T08:55:42"}

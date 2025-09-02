@@ -44,7 +44,9 @@ class Memory:
     def __init__(self) -> None:
         # Conversation history                     
         self.storage: Dict[str, List[Dict[str, Any]]] = {}
-        self.token_stats: Dict[str, int] = collections.defaultdict(int)
+        self.prompt_token_stats: Dict[str, int] = collections.defaultdict(int)
+        self.completion_token_stats: Dict[str, int] = collections.defaultdict(int)
+        self.total_token_stats: Dict[str, int] = collections.defaultdict(int)
 
         # Cache only the latest user / assistant messages
         self._last_user: Dict[str, Dict[str, Any]] = {}
@@ -54,13 +56,15 @@ class Memory:
         self.sessions: Dict[str, Dict[str, Any]] = {}
 
     # ------------------------  token helpers  -----------------------
-    def add_tokens(self, session_id: str, n_tokens: int) -> None:
-        """Accumulate *n_tokens* to the running total of *session_id*."""
-        self.token_stats[session_id] += int(n_tokens)
+    def add_tokens(self, session_id: str, prompt_tokens: int, completion_tokens: int, total_tokens: int) -> None:
+        """Accumulate *prompt_tokens* and *completion_tokens* to the running total of *session_id*."""
+        self.prompt_token_stats[session_id] += int(prompt_tokens)
+        self.completion_token_stats[session_id] += int(completion_tokens)
+        self.total_token_stats[session_id] += int(total_tokens)
 
     def get_total_tokens(self, session_id: str) -> int:
         """Return cumulative token count for *session_id*; 0 if none."""
-        return self.token_stats.get(session_id, 0)
+        return self.total_token_stats.get(session_id, 0)
     # ----------------------------------------------------------------
 
     # ----------------------  conversation I/O  ----------------------
@@ -144,7 +148,9 @@ class Memory:
 
     def clear_session(self, session_id: str) -> None:
         self.sessions.pop(session_id, None)
-        self.token_stats.pop(session_id, None)
+        self.prompt_token_stats.pop(session_id, None)
+        self.completion_token_stats.pop(session_id, None)
+        self.total_token_stats.pop(session_id, None)
 
     def reset(self, session_id: str) -> None:
         self.clear_history(session_id)
@@ -160,7 +166,9 @@ class Memory:
         结构：
         {
             "<session_id>": {
-                "total_tokens": 4567,
+                "prompt_tokens": 1234,
+                "completion_tokens": 1234,
+                "total_tokens": 2468,
                 "updated_at": "2025-08-19T13:45:12"
             },
             ...
@@ -168,10 +176,12 @@ class Memory:
         """
         payload = {
             sid: {
-                "total_tokens": tokens,
+                "prompt_tokens": self.prompt_token_stats.get(sid, 0),
+                "completion_tokens": self.completion_token_stats.get(sid, 0),
+                "total_tokens": self.total_token_stats.get(sid, 0),
                 "updated_at": datetime.utcnow().isoformat(timespec="seconds"),
             }
-            for sid, tokens in self.token_stats.items()
+            for sid in self.total_token_stats.keys()
         }
         Path(filepath).write_text(
             json.dumps(payload, indent=2, ensure_ascii=False)
@@ -185,7 +195,9 @@ class Memory:
         try:
             data = json.loads(Path(filepath).read_text())
             for sid, info in data.items():
-                self.token_stats[sid] = int(info.get("total_tokens", 0))
+                self.prompt_token_stats[sid] = int(info.get("prompt_token_stats", 0))
+                self.completion_token_stats[sid] = int(info.get("completion_tokens", 0))
+                self.total_token_stats[sid] = int(info.get("total_tokens", 0))
         except FileNotFoundError:
             pass
         except Exception as err:
@@ -196,18 +208,29 @@ class Memory:
     def append_token_event(
         self,
         session_id: str,
-        n_tokens: int,
+        prompt_tokens: int,
+        completion_tokens: int,
+        total_tokens: int,
         filepath: Union[str, Path] = "token_events.jsonl",
     ) -> None:
         """
-        以 **JSON Lines** 形式把每次调用写一行：
-        {"session_id": "...", "tokens": 123, "cum_tokens": 456, "ts": "..."}
-        不会发生覆盖。
+        以 **JSON Lines** 格式记录每次 API 调用的 token 使用情况。
+        每次调用都会在日志文件中追加一行新的 JSON 数据，不会覆盖已有内容。
+        日志格式示例:
+        {"session_id": "some_session_id", "tokens": {"prompt": 100, "completion": 50, "total": 150}, "cum_tokens": {"prompt": 300, "completion": 200, "total": 500}, "ts": "2025-09-02T03:06:59Z"}
         """
         record = {
             "session_id": session_id,
-            "tokens": int(n_tokens),
-            "cum_tokens": self.token_stats[session_id],
+            "tokens": {  # 本次请求消耗的 token
+                "prompt": prompt_tokens,
+                "completion": completion_tokens,
+                "total": total_tokens,
+            },
+            "cum_tokens": {  # 该 session 累计消耗的 token
+                "prompt": self.prompt_token_stats[session_id],
+                "completion": self.completion_token_stats[session_id],
+                "total": self.total_token_stats[session_id],
+            },
             "ts": datetime.utcnow().isoformat(timespec="seconds"),
         }
         with open(filepath, "a", encoding="utf-8") as f:
@@ -216,7 +239,9 @@ class Memory:
     def add_tokens_and_persist(
         self,
         session_id: str,
-        n_tokens: int,
+        prompt_tokens: int, 
+        completion_tokens: int, 
+        total_tokens: int,
         summary_path: Union[str, Path] = "token_summary.json",
         event_path: Union[str, Path] = "token_events.jsonl",
     ) -> None:
@@ -225,9 +250,9 @@ class Memory:
         • 立即把汇总覆盖写到 *summary_path*  
         • 立即把本次事件追加到 *event_path*
         """
-        self.add_tokens(session_id, n_tokens)
+        self.add_tokens(session_id, prompt_tokens, completion_tokens, total_tokens)
         self.dump_token_summary(summary_path)
-        self.append_token_event(session_id, n_tokens, event_path)
+        self.append_token_event(session_id, prompt_tokens, completion_tokens, total_tokens, event_path)
 
 # ─────────────────────────── MemoryClient ───────────────────────────
 class MemoryClient:
@@ -259,7 +284,8 @@ class MemoryClient:
         if choice:
             self.memory.add_response(session_id, choice)
 
+        prompt_tokens = result.get("usage", {}).get("prompt_tokens", 0)
+        completion_tokens = result.get("usage", {}).get("completion_tokens", 0)
         total_tokens = result.get("usage", {}).get("total_tokens", 0)
-        # self.memory.add_tokens(session_id, total_tokens)
-        self.memory.add_tokens_and_persist(session_id, total_tokens)
+        self.memory.add_tokens_and_persist(session_id, prompt_tokens, completion_tokens, total_tokens)
         return choice["content"] if choice and "content" in choice else ""

@@ -80,8 +80,9 @@ if __name__ == "__main__":
     }
 # /mnt/h_h_public/lh/lz/DataFlow/dataflow/example/DataflowAgent/mq_test_data.jsonl
     operator_write_params = {
-        "json_file": f"{DATAFLOW_DIR}/dataflow/example/DataflowAgent/mq_test_data.jsonl",
-        "py_path": f"{DATAFLOW_DIR}/test/op—test—scorer-new.py",
+        # "json_file": f"{DATAFLOW_DIR}/dataflow/example/DataflowAgent/test.jsonl",
+        "json_file": "/mnt/public/data/lh/ygc/dataflow-agent/DataFlow/dataflow/example/DataflowAgent/test.jsonl",
+        "py_path": f"{DATAFLOW_DIR}/test/op_scorer.py",
         "api_key": api_key,
         "chat_api_url": chat_api_url,
         "execute_the_operator": False,
@@ -105,7 +106,7 @@ if __name__ == "__main__":
     if len(sys.argv) == 2 and sys.argv[1] == "write":
         test_req = ChatAgentRequest(
             language="zh",
-            target="我需要一个算子，使用LLMServing对医疗场景的原始题干进行临床细节扩充，在不影响考点的前提下，插入合理的病史、体格检查或辅助检查结果，增强问题的真实性，并可灵活调节题目难度。输入key是question，输出key是questionCONTEXT。",
+            target="帮我写一个算子，能通过LLMserving完成打分，这个算子使用如下的提示词：'System Prompt: We would like to request your feedback on the performance of AI assistant in response to the instruction and the given input displayed following.\n\nInstruction: [Instruction]\nInput: [Input]\nResponse: [ResponseUser]\n\n User Prompt: Please rate according to the accuracy of the response to the instruction and the input. Each assistant receives a score on a scale of 0 to 5, where a higher score indicates higher level of the accuracy. Please output a single line containing the value indicating the scores. In the subsequent line, please provide a comprehensive explanation of your evaluation, avoiding any potential bias.'",
             model="gpt-4.1",
             sessionKEY="dataflow_demo",
             ** operator_write_params
@@ -115,7 +116,7 @@ if __name__ == "__main__":
         sys.exit(0)        
     uvicorn.run("test_dataflow_agent:app", host="0.0.0.0", port=8000, reload=True)
 
-    #target="帮我写一个算子，能通过LLMserving完成打分，这个算子使用如下的提示词：‘System Prompt:We would like to request your feedback on the performance of AI assistant in response to the instructionand the given input displayed following.Instruction: InstructionInput: [InputResponse:ResponseUser Prompt:Please rate according to the accuracy of the response to the instruction and the input. Each assistant receives a score on a scale of 0 to 5, where a higher score indicates higher level of the accuracy. Please output a single line containing the value indicating the scores. In the subsequent line, please provide acomprehensive explanation of your evaluation, avoiding any potential bias.’",
+    #target="帮我写一个算子，能通过LLMserving完成打分，这个算子使用如下的提示词：'System Prompt: We would like to request your feedback on the performance of AI assistant in response to the instruction and the given input displayed following.\n\nInstruction: [Instruction]\nInput: [Input]\nResponse: [ResponseUser]\n\n User Prompt: Please rate according to the accuracy of the response to the instruction and the input. Each assistant receives a score on a scale of 0 to 5, where a higher score indicates higher level of the accuracy. Please output a single line containing the value indicating the scores. In the subsequent line, please provide a comprehensive explanation of your evaluation, avoiding any potential bias.'",
 
     # 我需要一个新的算子，这个算子可以使用MinHash算法进行文本去重!!    
     # 我需要一个算子，能够检测文本中是否包含代码片段或数学公式，并进行格式化。
