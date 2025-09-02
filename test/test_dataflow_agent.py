@@ -80,7 +80,8 @@ if __name__ == "__main__":
     }
 # /mnt/h_h_public/lh/lz/DataFlow/dataflow/example/DataflowAgent/mq_test_data.jsonl
     operator_write_params = {
-        "json_file": f"{DATAFLOW_DIR}/dataflow/example/DataflowAgent/mq_test_data.jsonl",
+        # "json_file": f"{DATAFLOW_DIR}/dataflow/example/DataflowAgent/test.jsonl",
+        "json_file": "/mnt/public/data/lh/ygc/dataflow-agent/DataFlow/dataflow/example/DataflowAgent/test.jsonl",
         "py_path": f"{DATAFLOW_DIR}/test/op—test—scorer-new.py",
         "api_key": api_key,
         "chat_api_url": chat_api_url,
