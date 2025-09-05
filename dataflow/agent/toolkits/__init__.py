@@ -19,7 +19,8 @@ from .tools import (
     local_tool_for_get_categories,
     local_tool_for_get_purpose,
     generate_pre_task_params_with_sandboxed_prompt_param_builder,
-    generate_pre_task_params
+    generate_pre_task_params,
+    update_taskinfo_code_model
 )
 from .post_processor import post_process_combine_pipeline_result,post_process_save_op_code
 # from .logger import get_logger, setup_logging
