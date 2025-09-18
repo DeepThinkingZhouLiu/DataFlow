@@ -39,7 +39,7 @@ class DataFlowPath:
     
     @staticmethod
     def get_dataflow_agent_dir():
-        return DataFlowPath.get_dataflow_dir() / "agent"
+        return DataFlowPath.get_dataflow_dir() / "dataflowagent"
     
     # @staticmethod
     # def get_dataset_json_dir() -> Path:
