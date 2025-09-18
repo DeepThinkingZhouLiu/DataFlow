@@ -4,12 +4,15 @@ Author  : Zhou Liu
 License : MIT
 Updated : 2025-09-17
 
-全部模板均从 Python 模块动态加载，不再读取任何 JSON 资源文件。
+All templates are dynamically loaded from Python modules; no JSON resource
+files are read any longer.
 """
 
 from __future__ import annotations
 
-import importlib, inspect, re
+import importlib
+import inspect
+import re
 from string import Formatter
 from typing import Any, Dict, Sequence
 
@@ -31,9 +34,14 @@ class PromptsTemplateGenerator:
         python_modules: Sequence[str] | None = None,
     ) -> None:
         """
-        output_language : 模型最终回复语言
-        python_modules  : 需扫描的模块名列表（支持多个）
-                          缺省为 ["prompts_repo"]，若不存在需显式传参
+        Parameters
+        ----------
+        output_language : str
+            The language in which the model should answer finally.
+        python_modules : Sequence[str] | None, optional
+            A list of module names to be scanned (can be more than one).
+            Defaults to ["prompts_repo"].  If the default module does not
+            exist you must pass this argument explicitly.
         """
         self.output_language = output_language
         self.templates: Dict[str, str] = {}
@@ -41,19 +49,18 @@ class PromptsTemplateGenerator:
         self.code_debug_templates: Dict[str, str] = {}
         self.operator_templates: Dict[str, Dict] = {}
 
-        self._load_python_templates(
-            python_modules or ["prompts_repo"]
-        )
+        self._load_python_templates(python_modules or ["prompts_repo"])
 
     # ---------- Safe formatter ----------
     @staticmethod
     def _safe_format(tpl: str, **kwargs) -> str:
         class _Missing(dict):
-            def __missing__(self, k):   # 保留占位符
+            def __missing__(self, k):  # keep the placeholder
                 return "{" + k + "}"
+
         try:
             return Formatter().vformat(tpl, [], _Missing(**kwargs))
-        except Exception:                 # 极端情况下回退
+        except Exception:  # fall back in extreme cases
             for k in re.findall(r"{(.*?)}", tpl):
                 tpl = tpl.replace("{" + k + "}", str(kwargs.get(k, "{"+k+"}")))
             return tpl
@@ -61,20 +68,19 @@ class PromptsTemplateGenerator:
     # ---------- Loader ----------
     def _load_python_templates(self, modules: Sequence[str]) -> None:
         """
-        扫描给定模块中的所有 class / 顶层变量，把字符串模板或 operator dict
-        归档到内部字典。
+        Scan all classes and top-level variables in the given modules and archive
+        every string template or operator dict into the internal dictionaries.
         """
         for mod_name in modules:
-            # mod = importlib.import_module(mod_name)
             mod = importlib.import_module('.prompts_repo', package=__package__)
 
-            # 1. class 内部的属性
+            # 1. Attributes inside classes
             for _, cls in inspect.getmembers(mod, inspect.isclass):
                 if cls.__module__ != mod.__name__:
                     continue
                 self._collect_from_mapping(vars(cls))
 
-            # 2. 顶层变量
+            # 2. Top-level variables
             self._collect_from_mapping(vars(mod))
 
     # ---------- Collect helper ----------
@@ -86,7 +92,7 @@ class PromptsTemplateGenerator:
             if attr == "operator_templates" and isinstance(value, dict):
                 self.operator_templates.update(value)
                 continue
-            # ---- 字符串模板 ----
+            # ---- string templates ----
             if not isinstance(value, str):
                 continue
             if attr.startswith("system_prompt_for_") or attr.startswith("task_prompt_for_"):
@@ -97,7 +103,7 @@ class PromptsTemplateGenerator:
             elif attr.startswith("code_debug_template_for_"):
                 key = attr.replace("code_debug_template_for_", "")
                 self.code_debug_templates[key] = value
-            else:  
+            else:
                 self.templates[attr] = value
 
     # ---------- Renderers ----------
@@ -155,11 +161,10 @@ class PromptsTemplateGenerator:
         self.json_form_templates[task_name] = template
 
 
-
 if __name__ == "__main__":
     ptg = PromptsTemplateGenerator(
         output_language="zh",
-        python_modules=["prompts_repo"],  
+        python_modules=["prompts_repo"],
     )
 
     print(ptg.render("system_prompt_for_data_content_classification"))

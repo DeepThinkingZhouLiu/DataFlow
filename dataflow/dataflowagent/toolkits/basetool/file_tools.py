@@ -19,14 +19,15 @@ from dataflow.utils.storage import FileStorage
 from dataflow import get_logger
 logger = get_logger()
 from dataflow.cli_funcs.paths import DataFlowPath
+from dataflow.dataflowagent.storage.storage_service import SampleFileStorage
+from dataflow.dataflowagent.state import DFState,DFRequest
 
 parent_dir = f"{DataFlowPath.get_dataflow_agent_dir()}/toolkits"
 MAX_JSONL_LINES = 50
 DATA_DIR = Path("./data/knowledgebase")  # Local data storage directory
 
-
 def local_tool_for_sample(
-    request,
+    state: DFRequest,
     sample_size: int = 10,
     use_file_sys: int = 1,
     cache_type: str = "jsonl",
@@ -37,9 +38,11 @@ def local_tool_for_sample(
     Sample, classify, and compute statistics on sample data.
 
     Args:
+        state: Request object containing file information
         sample_size: Number of samples to retrieve.
         use_file_sys: Whether to use file system storage (1) or not (0).
         cache_type: Storage cache type ("jsonl" by default).
+        only_keys: If True, return only the keys found in samples
 
     Returns:
         A dictionary with overall statistics and sample details.
@@ -80,30 +83,73 @@ def local_tool_for_sample(
 
     # Storage selection
     if use_file_sys:
-        from ..servicemanager import SampleFileStorage
-        storage = SampleFileStorage(first_entry_file_name=request.json_file, cache_type="json")
+        from dataflow.dataflowagent.storage.storage_service import SampleFileStorage
+        
+        # 创建存储实例
+        storage = SampleFileStorage(
+            first_entry_file_name=state.json_file, 
+            cache_type=cache_type  # 使用传入的cache_type参数
+        )
         storage.step()
+        
+        logger.debug(f"------------Before Sampling--------------------")
+        
+        # 获取总数
+        total = storage.count()
+        
+        # 使用新的rsample方法进行采样
+        samples, actual_sample_size = storage.rsample(
+            mode="manual", 
+            k=sample_size
+        )
+        
+        logger.debug(f"------------After Sampling--------------------")
+        logger.debug(f"Requested: {sample_size}, Actual: {actual_sample_size}, Total: {total}")
+        
     else:
-        storage = None
-    logger.debug(f"------------Before Sampling--------------------")
-    samples, total = storage.rsample(mode="manual", k=sample_size)
-    logger.debug(f"------------After Sampling--------------------")
+        # 如果不使用文件系统，返回空结果或者抛出异常
+        logger.warning("Non-file system storage not implemented in new version")
+        samples = []
+        total = 0
 
+    # 如果只需要keys，获取字段信息
+    if only_keys:
+        if use_file_sys and storage:
+            # 使用新的get_fields方法
+            key_set = set(storage.get_fields())
+            # 如果需要从样本中获取更完整的keys
+            for sample in samples:
+                if isinstance(sample, dict):
+                    key_set.update(sample.keys())
+            return sorted(key_set)
+        else:
+            # 从样本中收集keys
+            key_set = set().union(*(s.keys() for s in samples if isinstance(s, dict)))
+            return sorted(key_set)
+
+    # 分类样本并计算统计信息
     type_list = [judge_type(s) for s in samples]
     counter = Counter(type_list)
 
+    # 计算分布（基于实际样本数而不是总数）
+    sample_count = len(samples)
     dist = {
-        t: {"count": c, "ratio": round(c / total, 4)}
+        t: {"count": c, "ratio": round(c / sample_count, 4) if sample_count > 0 else 0.0}
         for t, c in counter.items()
     }
+
+    # 收集所有keys
     key_set = set().union(*(s.keys() for s in samples if isinstance(s, dict)))
-    if only_keys:
-        return sorted(key_set)
+
     stats = {
         "total": total,
+        "sample_size": sample_count,
+        "stateed_size": sample_size,
         "distribution": dist,
-        "samples": samples
+        "samples": samples,
+        "available_keys": sorted(key_set)
     }
+
     logger.debug(f"-------Data Statistics-------\n {stats}")
     return stats
 
@@ -129,8 +175,15 @@ def local_tool_for_get_categories():
     except Exception as e:
         return []
 
-# if __name__ == "__main__":
-    # print(local_tool_for_get_categories())
+
+if __name__ == "__main__":
+    # 简单测试 local_tool_for_sample
+    from dataflow.dataflowagent.state import DFRequest
+    state = DFRequest(
+        language="zh",
+        json_file=f"{DataFlowPath.get_dataflow_dir().parent}/dataflow/example/DataflowAgent/mq_test_data.jsonl"
+    )
+    print(local_tool_for_sample(state,sample_size=2))
     # from dataflow.utils.registry import OPERATOR_REGISTRY
     
     # print("="*50)

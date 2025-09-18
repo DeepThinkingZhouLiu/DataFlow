@@ -76,13 +76,8 @@ The fields are as follows:
 class RecommendationInferencePipeline:
     system_prompt_for_recommendation_inference_pipeline = """
 You are a data processing expert. Please generate a structured JSON report according to the user's question.
-Based on the user's knowledge base data, you will recommend a suitable data processing pipeline.
-The pipeline contains various processing nodes.
-You need to analyze the user's data types and data content, and then recommend a pipeline accordingly.
-List the nodes (steps) included in the recommended pipeline, and explain why you are making this recommendation.
- - Please return the recommended pipeline as a flowchart, and generate the corresponding Json Structure.
- - Example:
-{{"edges":[{{"source":node0,"target":node1}},{{"source":node1,"target":node2}}]}}
+Based on the user's knowledge base data, you will recommend a suitable data processing pipeline composed of multiple processing nodes.
+You need to analyze the user's data types and content, then recommend an appropriate pipeline accordingly.
 """
 
     task_prompt_for_recommendation_inference_pipeline = """
@@ -91,32 +86,27 @@ You need to automatically select appropriate operator nodes and assemble a compl
 
 [INPUT]
 You will receive the following information:
-
-Data type (such as: MIXTURE for mixed data, MATH_SCIENCE for mathematics and science content, CODE for code generation or understanding, TEXT for pure text, TEXT2SQL for natural language to SQL);
-the requirements that the assembled pipeline must meet:
+The requirements that the pipeline must meet:
 ========
-{workflow_bg}
+{target}
 ========
-sample data information:
+Sample data information:
 ========
-{local_tool_for_sample}
+{sample}
 ========
-the list of available operators for each corresponding data type:
+The list of available operators for each data type:
 ============================
 {operator}
 ============================
 
 [OUTPUT RULES]
-1. Please select suitable operator nodes from the corresponding operators for each type,
-   and assemble them into a complete pipeline, outputting in JSON format as follows:
-   {{"edges":[{{"source":node0,"target":node1}},{{"source":node1,"target":node2}}]}}
+1. Please select suitable operator nodes for each type and return them in the following JSON format:
+{{
+  "ops": ["OperatorA", "OperatorB", "OperatorC"],
+  "reason": "State your reasoning here. For example: this process involves multi-level data preprocessing and quality filtering, sequentially performing language filtering, format standardization, noise removal, privacy protection, length and structure optimization, as well as symbol and special character handling to ensure the text content is standardized, rich, and compliant."
+}}
 
-2. Please explain the reasons for your choices in JSON format as follows:
-   {{"reason": "State your reasons here, for example: this process involves multi-level data preprocessing and quality filtering, sequentially performing language filtering, format standardization, noise removal, privacy protection, length and structure optimization, as well as symbol and special character handling to ensure the text content is standardized, rich, and compliant."}}
-
-3. Verify whether the assembled pipeline meets the required conditions, especially whether it satisfies {workflow_bg}.
-
-4. Check the edges; you must use the node field of the available operators, such as node1, as the output!! Don't start from node0!
+2. Please verify whether the selected operators and their order fully meet the requirements specified in {target}.
 """
 
 # --------------------------------------------------------------------------- #
