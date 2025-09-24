@@ -76,6 +76,11 @@ class ChatAgentRequest(BaseModel):
     # —— operator 场景独有 ——
     execute_the_operator: bool = False
 
+    # —— web collection 场景独有 ——
+    download_output_dir: Optional[str] = None
+    dataset_size_category: Optional[int] = None
+    dataset_num_limit: Optional[int] = None
+
 
 class ChatResponse(BaseModel):
     id: str
