@@ -131,8 +131,8 @@ async def main():
     if args.output:
         print(f"Saved to: {args.output}")
     else:
-        # 为避免终端刷屏，仅展示前 1000 字符
-        preview = (code_str or "")[:1000]
+        # 为避免终端刷屏，仅展示前 3000 字符
+        preview = (code_str or "")[:3000]
         print("Code preview:\n", preview)
 
     # ---- Debug runtime 移至 workflow 的 instantiate_operator_main_node ----
