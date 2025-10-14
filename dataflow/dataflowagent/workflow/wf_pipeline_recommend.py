@@ -7,6 +7,7 @@ from dataflow.dataflowagent.state import DFRequest, DFState
 from dataflow.dataflowagent.toolkits.basetool.file_tools import (
     local_tool_for_sample,
     local_tool_for_get_categories,
+    get_otherinfo_code
 )
 from dataflow.dataflowagent.toolkits.optool.op_tools import (
     local_tool_for_get_purpose,
@@ -18,6 +19,7 @@ from dataflow.dataflowagent.agentroles.recommender import create_recommender
 from dataflow.dataflowagent.agentroles.pipelinebuilder import create_pipeline_builder
 from dataflow.dataflowagent.agentroles.debugger import create_code_debugger
 from dataflow.dataflowagent.agentroles.rewriter import create_rewriter
+from dataflow.dataflowagent.agentroles.inforequester import create_info_requester
 
 from langchain.tools import tool
 from langgraph.graph import StateGraph
@@ -67,7 +69,7 @@ def create_pipeline_graph() -> GenericGraphBuilder:
         """Combine pipeline post tool for recommender"""
         return post_process_combine_pipeline_result(oplist)
 
-    # -------- debugger / rewriter 前置工具（保持不变） --------
+    # -------- debugger / rewriter 前置工具 --------
     @builder.pre_tool("pipeline_code", "code_debugger")
     def get_pipeline_code_for_debug(state: DFState):
         return state.temp_data.get("pipeline_code", "")
@@ -90,8 +92,32 @@ def create_pipeline_graph() -> GenericGraphBuilder:
 
     @builder.pre_tool("data_sample", "rewriter")
     def get_data_sample(state: DFState):
-        return state.temp_data.get("pre_tool_results", {}).get("sample", "")
+        return local_tool_for_sample(state.request, sample_size=1)["samples"]
+    
+    @builder.pre_tool("other_info", "rewriter")
+    def get_other_info(state: DFState):
+        return state.temp_data.get("other_info_summary", "")
+    
+    # --------  inforequest 前置工具 --------
+    @builder.pre_tool("pipeline_code", "info_requester")
+    def ir_pipeline_code(state: DFState):
+        return state.temp_data.get("pipeline_code", "")
 
+    @builder.pre_tool("error_trace", "info_requester")
+    def ir_error_trace(state: DFState):
+        return state.execution_result.get("stderr", "") \
+            or state.execution_result.get("traceback", "")
+    
+    class ModuleListInput(BaseModel):
+        module_list: list = Field(
+            description="List of dotted-path python modules or file paths"
+        )
+    @builder.post_tool("info_requester")
+    @tool(args_schema=ModuleListInput)
+    def fetch_other_info(module_list: list) -> dict:
+        """Return source code for requested modules"""
+        log.error(f'fetch_other_info：{module_list}')
+        return get_otherinfo_code(module_list)
     # ------------------------------------------------------------------
     # Ⅱ. 节点实现
     # ------------------------------------------------------------------
@@ -119,6 +145,26 @@ def create_pipeline_graph() -> GenericGraphBuilder:
 
         sg = StateGraph(DFState)
         sg.add_node("assistant", rec_inst.create_assistant_node_func(init_state, pre_results))
+        if post_tools:
+            sg.add_node("tools", ToolNode(post_tools))
+            sg.add_conditional_edges("assistant", tools_condition)
+            sg.add_edge("tools", "assistant")
+        sg.set_entry_point("assistant")
+        return sg.compile()
+
+    async def build_info_requester_subgraph(init_state: DFState):
+        from dataflow.dataflowagent.toolkits.tool_manager import get_tool_manager
+
+        tm = get_tool_manager()
+        requester = create_info_requester(tool_manager=tm, tool_mode = "auto")
+        init_state = await requester.execute(init_state, use_agent=True)
+
+        req_inst   = init_state.temp_data["info_requester_instance"]
+        pre_result = init_state.temp_data["pre_tool_results"]
+        post_tools = req_inst.get_post_tools()
+
+        sg = StateGraph(DFState)
+        sg.add_node("assistant", req_inst.create_assistant_node_func(init_state, pre_result))
         if post_tools:
             sg.add_node("tools", ToolNode(post_tools))
             sg.add_conditional_edges("assistant", tools_condition)
@@ -173,6 +219,18 @@ def create_pipeline_graph() -> GenericGraphBuilder:
         rewriter = create_rewriter(tool_manager=get_tool_manager(), model_name="o3")
         return rewriter.after_rewrite(s)
 
+    async def info_requester_node(s: DFState) -> DFState:
+        info_graph = await build_info_requester_subgraph(s)
+        result = await info_graph.ainvoke(s)
+        if isinstance(result, dict):
+            for k, v in result.items():
+                setattr(s, k, v)
+        else:
+            import dataclasses
+            for f in dataclasses.fields(DFState):
+                setattr(s, f.name, getattr(result, f.name))
+        return s
+
     # ------------------------------------------------------------------
     # Ⅲ. 条件函数
     # ------------------------------------------------------------------
@@ -182,7 +240,10 @@ def create_pipeline_graph() -> GenericGraphBuilder:
             if (
                 s.execution_result.get("success")
                 and s.temp_data.pop("debug_sample_file", None)  
-            ):
+            ): 
+                log.warning(
+                    '再次进入循环builder！！'
+                )
                 return "builder"
 
             # ② 正式流程成功 → 结束
@@ -201,18 +262,20 @@ def create_pipeline_graph() -> GenericGraphBuilder:
     # Ⅳ. 组图
     # ------------------------------------------------------------------
     nodes = {
-        "classifier": classifier_node,          
+        "classifier": classifier_node,
         "recommender": recommender_node,
         "builder": builder_node,
         "code_debugger": debugger_node,
+        "info_requester": info_requester_node,   
         "rewriter": rewriter_node,
         "after_rewrite": after_rewrite_node,
     }
 
     edges = [
-        ("classifier", "recommender"),          
+        ("classifier", "recommender"),
         ("recommender", "builder"),
-        ("code_debugger", "rewriter"),
+        ("code_debugger", "info_requester"),  
+        ("info_requester", "rewriter"),       
         ("rewriter", "after_rewrite"),
         ("after_rewrite", "builder"),
     ]

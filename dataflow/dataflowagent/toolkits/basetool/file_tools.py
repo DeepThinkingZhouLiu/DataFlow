@@ -1,8 +1,10 @@
 from __future__ import annotations
 import asyncio
+import importlib
 import inspect
 import sys
 import os
+import traceback
 from pydantic import BaseModel
 import httpx
 import json
@@ -21,6 +23,7 @@ logger = get_logger()
 from dataflow.cli_funcs.paths import DataFlowPath
 from dataflow.dataflowagent.storage.storage_service import SampleFileStorage
 from dataflow.dataflowagent.state import DFState,DFRequest
+import re
 
 parent_dir = f"{DataFlowPath.get_dataflow_agent_dir()}/toolkits"
 MAX_JSONL_LINES = 50
@@ -175,6 +178,112 @@ def local_tool_for_get_categories():
     except Exception as e:
         return []
 
+# ================================================================修改python文件的某行代码
+
+
+def change_pycode_lines(
+    file_path: Union[str, Path],
+    patches: Dict[int, str],
+    *,
+    encoding: str = "utf-8",
+    inherit_indent: bool = True,
+    make_backup: bool = True,
+    backup_suffix: str = ".bak",
+    write_back: bool = True,
+) -> List[str]:
+    """
+    根据行号-文本映射修改 Python 文件，并可自动继承原行缩进。
+    """
+    path = Path(file_path).expanduser().resolve()
+    if not path.is_file():
+        raise FileNotFoundError(path)
+
+    # 读取原文件
+    lines = path.read_text(encoding=encoding).splitlines(keepends=True)
+
+    # 先备份
+    if write_back and make_backup:
+        path.with_suffix(path.suffix + backup_suffix).write_text(
+            "".join(lines), encoding=encoding
+        )
+
+    max_line = len(lines)
+    invalid = [ln for ln in patches if ln < 1 or ln > max_line]
+    if invalid:
+        raise IndexError(f"行号越界 1-{max_line}: {invalid}")
+
+    for ln, new_body in patches.items():
+        old_line = lines[ln - 1]
+
+        # 行尾换行符
+        eol = old_line[len(old_line.rstrip("\r\n")) :]
+
+        # 缩进
+        indent = ""
+        if inherit_indent and not new_body.startswith((" ", "\t")):
+            indent = re.match(r"[ \t]*", old_line).group(0)
+
+        newline = eol if eol else "\n"          # 关键修复
+        lines[ln - 1] = f"{indent}{new_body}{newline}"
+
+    if write_back:
+        path.write_text("".join(lines), encoding=encoding)
+
+    return lines
+
+
+# =======================================================获取辅助源码
+from dataflow.utils.registry import OPERATOR_REGISTRY
+def _extract_module_source(op_name: str) -> str:
+    """
+    根据 OPERATOR_REGISTRY 中登记的 `op_name`
+    返回其**完整模块**源码字符串；提取失败时返回占位提示。
+
+    1. 通过 `OPERATOR_REGISTRY.get()` 拉起 LazyLoader，拿到类对象；
+    2. 借助 `cls.__module__` 取得模块名，再用 `importlib` / `inspect`
+       提取源码；
+    3. 若出现异常，记录日志并返回占位串，保证调用方逻辑不被打断。
+    """
+    logger = get_logger()
+
+    try:
+        # ① 拉取并触发懒加载
+        cls = OPERATOR_REGISTRY.get(op_name)
+
+        # ② 确保模块已导入
+        mod = importlib.import_module(cls.__module__)
+
+        # ③ 提取源码
+        return inspect.getsource(mod)
+
+    except Exception as e:
+        logger.warning(f"无法提取 {op_name} 的源码: {e}")
+        logger.debug(traceback.format_exc())
+        return "没有找到任务源代码，直接返回 other_info 即可；"
+
+
+def get_otherinfo_code(op_names: List[str]) -> Dict[str, str]:
+    """
+    批量获取多个 operator 对应的源码字符串。
+
+    :param op_names: 由 operator 名称组成的列表
+    :return: {op_name: source_code}
+    """
+    return {name: _extract_module_source(name) for name in op_names}
+
+
+# =============================高亮
+def flashy(msg: str, *, color: str = "yellow") -> str:
+    """
+    返回带 ANSI 颜色的字符串；调试场合用。
+    支持的 color: red / green / yellow / blue / magenta / cyan / white
+    """
+    colors = {
+        "black":   30, "red":     31, "green":  32, "yellow": 33,
+        "blue":    34, "magenta": 35, "cyan":   36, "white":  37,
+    }
+    code = colors.get(color, 33)
+    return f"\033[{code}m{msg}\033[0m"
 
 if __name__ == "__main__":
     # 简单测试 local_tool_for_sample
