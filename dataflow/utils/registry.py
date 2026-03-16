@@ -275,8 +275,17 @@ class LazyLoader(types.ModuleType):
         self.__all__ = list(import_structure.keys())
         
     def _import_all(self):
+        logger = get_logger()
         for cls_name in self.__all__:
-            self.__getattr__(cls_name)
+            try:
+                self.__getattr__(cls_name)
+            except Exception as exc:
+                logger.warning(
+                    "Skip optional registry import %s from %s: %s",
+                    cls_name,
+                    self.__path__,
+                    exc,
+                )
 
     def _load_class_from_file(self, file_path, class_name):
         """

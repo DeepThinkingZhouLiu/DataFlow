@@ -1,29 +1,29 @@
 from .api_llm_serving_request import APILLMServing_request
-from .local_model_llm_serving import LocalModelLLMServing_vllm
-from .local_model_llm_serving import LocalModelLLMServing_sglang
-from .api_vlm_serving_openai import APIVLMServing_openai
-from .google_api_serving import PerspectiveAPIServing
-from .lite_llm_serving import LiteLLMServing
-
-from .localhost_llm_api_serving import LocalHostLLMAPIServing_vllm
-from .localmodel_lalm_serving import LocalModelLALMServing_vllm
-
-from .LocalSentenceLLMServing import LocalEmbeddingServing
-from .light_rag_serving import LightRAGServing
-from .api_google_vertexai_serving import APIGoogleVertexAIServing
-
-from .local_model_vlm_serving import LocalVLMServing_vllm
 
 
 __all__ = [
-    "APIGoogleVertexAIServing",
     "APILLMServing_request",
-    "LocalModelLLMServing_vllm",
-    "LocalModelLLMServing_sglang",
-    "APIVLMServing_openai",
-    "PerspectiveAPIServing",
-    "LiteLLMServing",
-    "LocalModelLALMServing_vllm",
-    "LocalHostLLMAPIServing_vllm",
-    "LocalVLMServing_vllm",
 ]
+
+
+def _optional_import(module_name: str, export_names: list[str]) -> None:
+    try:
+        module = __import__(f"{__name__}.{module_name}", fromlist=export_names)
+    except ImportError:
+        return
+
+    for export_name in export_names:
+        globals()[export_name] = getattr(module, export_name)
+        __all__.append(export_name)
+
+
+_optional_import("local_model_llm_serving", ["LocalModelLLMServing_vllm", "LocalModelLLMServing_sglang"])
+_optional_import("localhost_llm_api_serving", ["LocalHostLLMAPIServing_vllm"])
+_optional_import("localmodel_lalm_serving", ["LocalModelLALMServing_vllm"])
+_optional_import("api_vlm_serving_openai", ["APIVLMServing_openai"])
+_optional_import("google_api_serving", ["PerspectiveAPIServing"])
+_optional_import("lite_llm_serving", ["LiteLLMServing"])
+_optional_import("LocalSentenceLLMServing", ["LocalEmbeddingServing"])
+_optional_import("light_rag_serving", ["LightRAGServing"])
+_optional_import("api_google_vertexai_serving", ["APIGoogleVertexAIServing"])
+_optional_import("local_model_vlm_serving", ["LocalVLMServing_vllm"])
